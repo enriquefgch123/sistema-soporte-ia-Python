@@ -2,16 +2,20 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reportes y Métricas - Concentrix</title>
+    <title>Reportes y Métricas - Soporte IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/jpeg" href="/static/icono.jpg">
     <style>
+        /* Ocultar elementos innecesarios al exportar o imprimir a PDF */
         @media print {
-            .no-print {
+            nav.navbar, 
+            .d-flex.gap-2, 
+            .btn, 
+            form {
                 display: none !important;
             }
             body {
-                background-color: white !important;
+                background-color: #fff !important;
             }
             .card {
                 border: 1px solid #ddd !important;
@@ -22,95 +26,102 @@
 </head>
 <body class="bg-light">
 
-    <!-- Barra de navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 no-print">
-        <div class="container-fluid">
+    <!-- Barra de navegación unificada -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4 py-3">
+        <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="/static/logo.jpg" alt="Concentrix" style="height: 32px;" class="me-2">
-                <span style="font-size: 1rem; font-weight: 300; opacity: 0.8; color: #fff;">| Soporte IA</span>
+                <img src="/static/logo.jpg" alt="Logo" style="height: 32px;" class="me-2 rounded">
+                <span style="font-size: 1.1rem; font-weight: 300; opacity: 0.85; color: #fff;">| Panel de Reportes</span>
             </a>
 
-            <div class="d-flex text-white align-items-center">
-                <span class="me-3">Hola, <strong>{{ nombre }}</strong> ({{ rol }})</span>
+            <div class="d-flex text-white align-items-center gap-2">
+                <span class="me-2 small">Hola, <strong>{{ nombre }}</strong> <span class="badge bg-secondary">{{ rol }}</span></span>
                 
-                <a href="/" class="btn btn-outline-light btn-sm me-2">Nuevo Ticket</a>
-                <a href="/historial" class="btn btn-outline-light btn-sm me-2">Historial</a>
-
-                {% if rol == 'Administrador' %}
-                    <a href="/crear-usuario" class="btn btn-success btn-sm me-2">Crear Usuario</a>
-                {% endif %}
+                <a href="/" class="btn btn-outline-light btn-sm">Nuevo Ticket</a>
+                <a href="/historial" class="btn btn-outline-light btn-sm">Historial</a>
+                <a href="/bandeja" class="btn btn-outline-warning btn-sm">📥 Bandeja</a>
+                <a href="/crear-usuario" class="btn btn-success btn-sm">Gestión de Usuarios</a>
 
                 <a href="/logout" class="btn btn-danger btn-sm">Cerrar Sesión</a>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        {% if mensaje_reentreno %}
-            {{ mensaje_reentreno | safe }}
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-dark">Reporte Operativo y Métricas del Sistema</h2>
+            <div class="d-flex gap-2">
+                <form action="/reportes/reentrenar" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm px-3 rounded-2">🧠 Reentrenar IA</button>
+                </form>
+                <button onclick="window.print()" class="btn btn-dark btn-sm px-3 rounded-2">🖨️ Imprimir / Exportar PDF</button>
+            </div>
+        </div>
+
+        {% if mensaje %}
+            {{ mensaje | safe }}
         {% endif %}
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Reporte Operativo y Métricas del Sistema</h2>
-            <div>
-                <form method="POST" action="/reportes/reentrenar" class="d-inline">
-                    <button type="submit" class="btn btn-success btn-sm me-2 no-print">🧠 Reentrenar IA</button>
-                </form>
-                <button onclick="window.print();" class="btn btn-dark btn-sm no-print">🖨️ Imprimir / Exportar PDF</button>
-            </div>
-        </div>
-
-        <!-- Tarjetas de Estadísticas -->
-        <div class="row text-center mb-4">
-            <div class="col-md-3">
-                <div class="card shadow p-3 bg-white">
-                    <h5>Total Tickets</h5>
-                    <h3>{{ total_tickets }}</h3>
+        <!-- Fila 1 de Métricas Principales -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                    <span class="text-muted small fw-semibold">Total Tickets</span>
+                    <h3 class="fw-bold text-dark mt-1">{{ total_tickets }}</h3>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card shadow p-3 bg-white">
-                    <h5>Tickets Validados</h5>
-                    <h3>{{ total_validados }}</h3>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                    <span class="text-muted small fw-semibold">Tickets Resueltos / Validados</span>
+                    <h3 class="fw-bold text-success mt-1">{{ total_resueltos }}</h3>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card shadow p-3 bg-white">
-                    <h5>Tiempo Promedio IA</h5>
-                    <h3>{{ tiempo_promedio }}s</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card shadow p-3 bg-white">
-                    <h5>Exactitud del Modelo</h5>
-                    <h3 class="text-success">{{ porcentaje_exactitud }}%</h3>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                    <span class="text-muted small fw-semibold">Tiempo Promedio IA</span>
+                    <h3 class="fw-bold text-primary mt-1">{{ tiempo_promedio }}s</h3>
                 </div>
             </div>
         </div>
 
-        <!-- Primer Cuadro: Desglose IA -->
-        <div class="card shadow p-4 bg-white mb-4">
-            <h4 class="mb-3">Desglose de Incidencias (Predicción Inicial de la IA)</h4>
-            <hr>
+        <!-- Fila 2 de Exactitudes del Modelo -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                    <span class="text-muted small fw-semibold">Exactitud (Solo Categoría)</span>
+                    <h3 class="fw-bold text-info mt-1">{{ exactitud_cat }}%</h3>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white text-center">
+                    <span class="text-muted small fw-semibold">Exactitud (Categoría y Prioridad)</span>
+                    <h3 class="fw-bold text-warning mt-1">{{ exactitud_cat_prio }}%</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose de Incidencias Iniciales (IA) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h4 class="mb-3 fw-bold text-dark">Desglose de Incidencias (Predicción Inicial de la IA)</h4>
             <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Categoría Sugerida (IA)</th>
-                            <th>Cantidad de Tickets Registrados</th>
+                            <th class="py-3 rounded-start">Categoría Sugerida (IA)</th>
+                            <th class="py-3 rounded-end">Cantidad de Tickets Registrados</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% if desglose_ia %}
-                            {% for cat in desglose_ia %}
+                        {% if desglose %}
+                            {% for row in desglose %}
                             <tr>
-                                <td><span class="badge bg-secondary text-white">{{ cat.categoria_sugerida }}</span></td>
-                                <td><strong>{{ cat.total }}</strong></td>
+                                <td><span class="badge bg-secondary">{{ row.categoria_sugerida }}</span></td>
+                                <td class="fw-bold">{{ row.total }}</td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="2" class="text-center text-muted">No hay incidencias registradas todavía.</td>
+                                <td colspan="2" class="text-center text-muted py-3">No hay datos de categorías registrados.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -118,29 +129,28 @@
             </div>
         </div>
 
-        <!-- Segundo Cuadro: Desglose Real -->
-        <div class="card shadow p-4 bg-white mb-4">
-            <h4 class="mb-3">Desglose Real de Incidencias (Post-Revisión y Validación Humana)</h4>
-            <hr>
+        <!-- Desglose de Incidencias Resueltas / Validadas -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h4 class="mb-3 fw-bold text-dark">Desglose de Incidencias Resueltas / Validadas (Finales)</h4>
             <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-success">
                         <tr>
-                            <th>Categoría Real (Validada por Analista)</th>
-                            <th>Cantidad de Tickets Validados</th>
+                            <th class="py-3 rounded-start">Categoría Final</th>
+                            <th class="py-3 rounded-end">Cantidad de Tickets Atendidos / Resueltos</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% if desglose_reales %}
-                            {% for cat_real in desglose_reales %}
+                        {% if desglose_resueltos %}
+                            {% for row in desglose_resueltos %}
                             <tr>
-                                <td><span class="badge bg-success text-white">{{ cat_real.categoria_final }}</span></td>
-                                <td><strong>{{ cat_real.total }}</strong></td>
+                                <td><span class="badge bg-success">{{ row.categoria }}</span></td>
+                                <td class="fw-bold">{{ row.total }}</td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="2" class="text-center text-muted">No hay tickets validados por los analistas todavía.</td>
+                                <td colspan="2" class="text-center text-muted py-3">No hay tickets resueltos o validados registrados aún.</td>
                             </tr>
                         {% endif %}
                     </tbody>

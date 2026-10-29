@@ -2,28 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial y Validación de Tickets</title>
+    <title>Historial y Validación de Tickets - Soporte IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/jpeg" href="/static/icono.jpg">
 </head>
 <body class="bg-light">
 
     <!-- Barra de navegación unificada -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4 py-3">
+        <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="/static/logo.jpg" alt="Concentrix" style="height: 32px;" class="me-2">
-                <span style="font-size: 1rem; font-weight: 300; opacity: 0.8; color: #fff;">| Soporte IA</span>
+                <img src="/static/logo.jpg" alt="Concentrix" style="height: 32px;" class="me-2 rounded">
+                <span style="font-size: 1.1rem; font-weight: 300; opacity: 0.85; color: #fff;">| Soporte IA</span>
             </a>
 
-            <div class="d-flex text-white align-items-center">
-                <span class="me-3">Hola, <strong>{{ nombre }}</strong> ({{ rol }})</span>
+            <div class="d-flex text-white align-items-center gap-2">
+                <span class="me-2 small">Hola, <strong>{{ nombre }}</strong> <span class="badge bg-secondary">{{ rol }}</span></span>
                 
-                <a href="/" class="btn btn-outline-light btn-sm me-2">Nuevo Ticket</a>
+                <a href="/" class="btn btn-outline-light btn-sm">Nuevo Ticket</a>
+                <a href="/bandeja" class="btn btn-outline-warning btn-sm">📥 Bandeja</a>
 
                 {% if rol == 'Administrador' %}
-                    <a href="/reportes" class="btn btn-outline-light btn-sm me-2">Reportes</a>
-                    <a href="/crear-usuario" class="btn btn-success btn-sm me-2">Crear Usuario</a>
+                    <a href="/reportes" class="btn btn-outline-light btn-sm">Reportes</a>
+                    <a href="/crear-usuario" class="btn btn-success btn-sm">Gestión de Usuarios</a>
                 {% endif %}
 
                 <a href="/logout" class="btn btn-danger btn-sm">Cerrar Sesión</a>
@@ -31,76 +32,83 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Gestión e Historial de Incidencias (Validación Humana)</h2>
+            <h2 class="fw-bold text-dark">Gestión e Historial de Incidencias</h2>
         </div>
 
         {% if mensaje %}
             {{ mensaje | safe }}
         {% endif %}
 
-        <div class="card shadow p-3">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
             <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Código</th>
-                            <th>Descripción</th>
-                            <th>IA (Cat / Prio)</th>
-                            <th>Validación Final (Editar si es necesario)</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
+                            <th class="py-3 rounded-start">Código</th>
+                            <th class="py-3">Descripción</th>
+                            <th class="py-3">IA (Cat / Prio)</th>
+                            <th class="py-3">Validación Final (Editar)</th>
+                            <th class="py-3">Estado</th>
+                            <th class="py-3 rounded-end text-center">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in resultados %}
-                        <tr>
-                            <form method="POST" action="/historial">
-                                <input type="hidden" name="id_ticket" value="{{ row.id }}">
-                                <input type="hidden" name="accion" value="validar">
-                                
-                                <td><strong>{{ row.codigo_ticket }}</strong><br><small class="text-muted">{{ row.fecha_registro }}</small></td>
-                                <td>{{ row.descripcion_texto }}</td>
-                                <td>
-                                    <span class="badge bg-info text-dark">{{ row.categoria_sugerida }}</span>
-                                    <span class="badge bg-warning text-dark">{{ row.prioridad_sugerida }}</span>
-                                    <br><small class="text-muted">Tiempo IA: {{ row.tiempo_procesamiento_ia }}s</small>
-                                </td>
-                                <td>
-                                    <!-- Selección de Categoría Final -->
-                                    <select name="categoria_final" class="form-select form-select-sm mb-1">
-                                        {% set cats = ['Hardware', 'Software', 'Redes', 'Accesos', 'Impresoras'] %}
-                                        {% for c in cats %}
-                                            {% set is_selected = 'selected' if (row.categoria_final == c or (not row.categoria_final and row.categoria_sugerida == c)) else '' %}
-                                            <option value="{{ c }}" {{ is_selected }}>{{ c }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <!-- Selección de Prioridad Final -->
-                                    <select name="prioridad_final" class="form-select form-select-sm">
-                                        {% set pris = ['Baja', 'Media', 'Alta', 'Crítica'] %}
-                                        {% for p in pris %}
-                                            {% set is_selected = 'selected' if (row.prioridad_final == p or (not row.prioridad_final and row.prioridad_sugerida == p)) else '' %}
-                                            <option value="{{ p }}" {{ is_selected }}>{{ p }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </td>
-                                <td>
-                                    {% set badge_class = 'success' if row.estado == 'Validado' else 'secondary' %}
-                                    <span class="badge bg-{{ badge_class }}">
-                                        {{ row.estado }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button type="submit" class="btn btn-primary btn-sm w-100">Guardar</button>
-                                </td>
-                            </form>
-                        </tr>
-                        {% endfor %}
+                        {% if resultados %}
+                            {% for row in resultados %}
+                            <tr>
+                                <form method="POST" action="/historial">
+                                    <input type="hidden" name="id_ticket" value="{{ row.id }}">
+                                    <input type="hidden" name="accion" value="validar">
+                                    
+                                    <td><strong>{{ row.codigo_ticket }}</strong><br><small class="text-muted" style="font-size: 0.75rem;">{{ row.fecha_registro }}</small></td>
+                                    <td class="text-secondary" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ row.descripcion_texto }}">{{ row.descripcion_texto }}</td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">Cat: {{ row.categoria_sugerida }}</span>
+                                        <span class="badge bg-warning text-dark">Prio: {{ row.prioridad_sugerida }}</span>
+                                        <br><small class="text-muted" style="font-size: 0.75rem;">Tiempo: {{ row.tiempo_procesamiento_ia }}s</small>
+                                    </td>
+                                    <td>
+                                        <!-- Selección de Categoría Final -->
+                                        <select name="categoria_final" class="form-select form-select-sm mb-1 rounded-2">
+                                            {% set cats = ['Hardware', 'Software', 'Redes', 'Accesos', 'Impresoras'] %}
+                                            {% for c in cats %}
+                                                {% set is_selected = 'selected' if (row.categoria_final == c or (not row.categoria_final and row.categoria_sugerida == c)) else '' %}
+                                                <option value="{{ c }}" {{ is_selected }}>{{ c }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <!-- Selección de Prioridad Final -->
+                                        <select name="prioridad_final" class="form-select form-select-sm rounded-2">
+                                            {% set pris = ['Baja', 'Media', 'Alta', 'Crítica'] %}
+                                            {% for p in pris %}
+                                                {% set is_selected = 'selected' if (row.prioridad_final == p or (not row.prioridad_final and row.prioridad_sugerida == p)) else '' %}
+                                                <option value="{{ p }}" {{ is_selected }}>{{ p }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        {% set estado = row.estado %}
+                                        <span class="badge {% if estado == 'Resuelto' or estado == 'Validado' %}bg-success{% elif estado == 'Atendido' %}bg-info text-dark{% elif estado == 'En Proceso' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ estado }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="submit" class="btn btn-primary btn-sm px-3 rounded-2">Guardar</button>
+                                    </td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No hay incidencias registradas en el historial.</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

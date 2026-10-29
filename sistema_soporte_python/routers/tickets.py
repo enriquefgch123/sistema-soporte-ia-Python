@@ -21,14 +21,31 @@ else:
     vectorizador = None
 
 @router.get("/", response_class=HTMLResponse)
-def index_get(request: Request):
+def index_get(request: Request, mensaje: str = None):
     if not request.session.get("usuario_id"):
         return RedirectResponse(url="/login", status_code=303)
     
+    usuario_id = request.session.get("usuario_id")
+    rol = request.session.get("rol")
+    nombre = request.session.get("nombre")
+    
+    conexion = obtener_conexion()
+    cursor = conexion.cursor(dictionary=True)
+    
+    if rol == "Cliente":
+        cursor.execute("SELECT * FROM incidencias WHERE usuario_id = %s ORDER BY id DESC", (usuario_id,))
+    else:
+        cursor.execute("SELECT * FROM incidencias ORDER BY id DESC")
+        
+    mis_tickets = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+    
     return templates.TemplateResponse(request, "index.html", {
-        "nombre": request.session.get("nombre"),
-        "rol": request.session.get("rol"),
-        "mensaje": None
+        "nombre": nombre,
+        "rol": rol,
+        "mis_tickets": mis_tickets,
+        "mensaje": mensaje
     })
 
 @router.post("/", response_class=HTMLResponse)
@@ -36,9 +53,13 @@ def index_post(request: Request, descripcion: str = Form(...)):
     if not request.session.get("usuario_id"):
         return RedirectResponse(url="/login", status_code=303)
     
+    usuario_id = request.session.get("usuario_id")
+    rol = request.session.get("rol")
+    nombre = request.session.get("nombre")
+    
     if not model_categoria or not vectorizador:
         mensaje = "<div class='alert alert-danger'>Error: No se encontraron los archivos del modelo de IA (.pkl).</div>"
-        return templates.TemplateResponse(request, "index.html", {"nombre": request.session.get("nombre"), "rol": request.session.get("rol"), "mensaje": mensaje})
+        return index_get(request, mensaje=mensaje)
 
     codigo_ticket = f"TICK-{int(time.time())}"
     inicio = time.time()
@@ -54,20 +75,37 @@ def index_post(request: Request, descripcion: str = Form(...)):
         conexion = obtener_conexion()
         cursor = conexion.cursor()
         sql = """
-            INSERT INTO incidencias (codigo_ticket, descripcion_texto, categoria_sugerida, prioridad_sugerida, tiempo_procesamiento_ia, estado) 
-            VALUES (%s, %s, %s, %s, %s, 'Pendiente')
+            INSERT INTO incidencias (codigo_ticket, descripcion_texto, categoria_sugerida, prioridad_sugerida, tiempo_procesamiento_ia, estado, usuario_id) 
+            VALUES (%s, %s, %s, %s, %s, 'Pendiente', %s)
         """
-        cursor.execute(sql, (codigo_ticket, descripcion, categoria_sugerida, prioridad_sugerida, tiempo_ia))
+        cursor.execute(sql, (codigo_ticket, descripcion, categoria_sugerida, prioridad_sugerida, tiempo_ia, usuario_id))
         conexion.commit()
         cursor.close()
         conexion.close()
         
-        mensaje = f"<div class='alert alert-success'>¡Incidencia registrada y clasificada por la IA con éxito! Ticket: <strong>{codigo_ticket}</strong> | Categoría: <strong>{categoria_sugerida}</strong></div>"
+        mensaje = f"<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Incidencia registrada y clasificada por la IA con éxito! Ticket: <strong>{codigo_ticket}</strong> | Categoría Sugerida: <strong>{categoria_sugerida}</strong><button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"
     except Exception as e:
         mensaje = f"<div class='alert alert-danger'>Error al guardar en la BD: {e}</div>"
         
-    return templates.TemplateResponse(request, "index.html", {
-        "nombre": request.session.get("nombre"),
-        "rol": request.session.get("rol"),
-        "mensaje": mensaje
-    })
+    return index_get(request, mensaje=mensaje)
+
+@router.post("/resolver-ticket/{ticket_id}", response_class=HTMLResponse)
+def resolver_ticket_cliente(request: Request, ticket_id: int):
+    if not request.session.get("usuario_id"):
+        return RedirectResponse(url="/login", status_code=303)
+        
+    usuario_id = request.session.get("usuario_id")
+    
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        sql = "UPDATE incidencias SET estado = 'Resuelto' WHERE id = %s AND usuario_id = %s"
+        cursor.execute(sql, (ticket_id, usuario_id))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        mensaje = "<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Gracias por confirmar! Tu ticket ha sido marcado como <strong>Resuelto</strong>.<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"
+    except Exception as e:
+        mensaje = f"<div class='alert alert-danger'>Error al actualizar el ticket: {e}</div>"
+        
+    return index_get(request, mensaje=mensaje)
