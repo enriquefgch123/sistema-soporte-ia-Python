@@ -13,8 +13,8 @@ def bandeja_get(request: Request):
         
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
-    # Mostramos tickets que estén pendientes o en proceso para la bandeja de trabajo del técnico
-    cursor.execute("SELECT * FROM incidencias WHERE estado IN ('Pendiente', 'En Proceso') ORDER BY id DESC")
+    # Mostramos tickets que estén pendientes , en proceso y atentido para la bandeja de trabajo del analista
+    cursor.execute("SELECT * FROM incidencias WHERE estado IN ('Pendiente', 'En Proceso', 'Atendido') ORDER BY id DESC")
     resultados = cursor.fetchall()
     cursor.close()
     conexion.close()
@@ -49,7 +49,8 @@ def bandeja_post(request: Request, id_ticket: int = Form(...), estado_nuevo: str
             
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM incidencias WHERE estado IN ('Pendiente', 'En Proceso') ORDER BY id DESC")
+    # Incluimos 'Atendido' aquí también para que al hacer clic en Actualizar sigan apareciendo en pantalla
+    cursor.execute("SELECT * FROM incidencias WHERE estado IN ('Pendiente', 'En Proceso', 'Atendido') ORDER BY id DESC")
     resultados = cursor.fetchall()
     cursor.close()
     conexion.close()
@@ -62,7 +63,7 @@ def bandeja_post(request: Request, id_ticket: int = Form(...), estado_nuevo: str
     })
 
 @router.get("/historial", response_class=HTMLResponse)
-def historial_get(request: Request):
+def historial_get(request: Request, mensaje: str = None):
     if not request.session.get("usuario_id"):
         return RedirectResponse(url="/login", status_code=303)
         
@@ -78,5 +79,53 @@ def historial_get(request: Request):
         "nombre": request.session.get("nombre"),
         "rol": request.session.get("rol"),
         "resultados": resultados,
-        "mensaje": None
+        "mensaje": mensaje
     })
+
+@router.post("/historial", response_class=HTMLResponse)
+def historial_post(
+    request: Request, 
+    id_ticket: int = Form(...), 
+    categoria_final: str = Form(...), 
+    prioridad_final: str = Form(...)
+):
+    if not request.session.get("usuario_id"):
+        return RedirectResponse(url="/login", status_code=303)
+        
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        # Actualizamos únicamente la categoría y prioridad final sin sobreescribir el estado actual
+        sql = """
+            UPDATE incidencias 
+            SET categoria_final = %s, prioridad_final = %s 
+            WHERE id = %s
+        """
+        cursor.execute(sql, (categoria_final, prioridad_final, id_ticket))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        
+        mensaje = "<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Validación final actualizada con éxito!<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"
+    except Exception as e:
+        mensaje = f"<div class='alert alert-danger'>Error al actualizar la incidencia: {e}</div>"
+        
+    return historial_get(request, mensaje=mensaje)
+
+@router.get("/eliminar-ticket/{ticket_id}", response_class=HTMLResponse)
+def eliminar_ticket(request: Request, ticket_id: int):
+    if not request.session.get("usuario_id") or request.session.get("rol") not in ["Administrador", "Analista"]:
+        return RedirectResponse(url="/login", status_code=303)
+        
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("DELETE FROM incidencias WHERE id = %s", (ticket_id,))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        mensaje = "<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Incidencia eliminada correctamente!<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"
+    except Exception as e:
+        mensaje = f"<div class='alert alert-danger'>Error al eliminar la incidencia: {e}</div>"
+        
+    return historial_get(request, mensaje=mensaje)
