@@ -43,13 +43,22 @@ def bandeja_post(request: Request, id_ticket: int = Form(...), estado_nuevo: str
         conexion.commit()
         cursor.close()
         conexion.close()
-        mensaje = f"<div class='alert alert-success'>Ticket actualizado correctamente a estado: <strong>{estado_nuevo}</strong></div>"
+        
+        # Mensaje más detallado que incluye categoría, prioridad y estado
+        mensaje = f"""
+        <div class='alert alert-success alert-dismissible fade show' role='alert'>
+            ¡Ticket actualizado con éxito! 
+            <strong>Categoría:</strong> {categoria_final} | 
+            <strong>Prioridad:</strong> {prioridad_final} | 
+            <strong>Estado:</strong> {estado_nuevo}
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>
+        """
     except Exception as e:
         mensaje = f"<div class='alert alert-danger'>Error al actualizar el ticket: {e}</div>"
             
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
-    # Incluimos 'Atendido' aquí también para que al hacer clic en Actualizar sigan apareciendo en pantalla
     cursor.execute("SELECT * FROM incidencias WHERE estado IN ('Pendiente', 'En Proceso', 'Atendido') ORDER BY id DESC")
     resultados = cursor.fetchall()
     cursor.close()
