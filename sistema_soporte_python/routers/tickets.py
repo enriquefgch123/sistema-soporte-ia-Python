@@ -32,10 +32,8 @@ def index_get(request: Request, mensaje: str = None):
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
     
-    if rol == "Cliente":
-        cursor.execute("SELECT * FROM incidencias WHERE usuario_id = %s ORDER BY id DESC", (usuario_id,))
-    else:
-        cursor.execute("SELECT * FROM incidencias ORDER BY id DESC")
+    # Filtramos siempre por el usuario_id para que cada cuenta vea únicamente sus propios tickets en esta sección
+    cursor.execute("SELECT * FROM incidencias WHERE usuario_id = %s ORDER BY id DESC", (usuario_id,))
         
     mis_tickets = cursor.fetchall()
     cursor.close()

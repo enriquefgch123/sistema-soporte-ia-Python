@@ -51,6 +51,7 @@
                             <th class="py-3">IA (Cat / Prio)</th>
                             <th class="py-3">Validación Final (Editar)</th>
                             <th class="py-3">Estado</th>
+                            <th class="py-3">Solución / Notas</th>
                             <th class="py-3 rounded-end text-center">Acción</th>
                         </tr>
                     </thead>
@@ -58,53 +59,90 @@
                         {% if resultados %}
                             {% for row in resultados %}
                             <tr>
-                                <form method="POST" action="/historial">
+                                <!-- Formulario independiente asociado por ID mediante HTML5 -->
+                                <form method="POST" action="/historial" id="formValidar{{ row.id }}">
                                     <input type="hidden" name="id_ticket" value="{{ row.id }}">
                                     <input type="hidden" name="accion" value="validar">
-                                    
-                                    <td><strong>{{ row.codigo_ticket }}</strong><br><small class="text-muted" style="font-size: 0.75rem;">{{ row.fecha_registro }}</small></td>
-                                    <td class="text-secondary" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ row.descripcion_texto }}">{{ row.descripcion_texto }}</td>
-                                    <td>
-                                        <span class="badge bg-info text-dark">Cat: {{ row.categoria_sugerida }}</span>
-                                        <span class="badge bg-warning text-dark">Prio: {{ row.prioridad_sugerida }}</span>
-                                        <br><small class="text-muted" style="font-size: 0.75rem;">Tiempo: {{ row.tiempo_procesamiento_ia }}s</small>
-                                    </td>
-                                    <td>
-                                        <!-- Selección de Categoría Final -->
-                                        <select name="categoria_final" class="form-select form-select-sm mb-1 rounded-2">
-                                            {% set cats = ['Hardware', 'Software', 'Redes', 'Accesos', 'Impresoras'] %}
-                                            {% for c in cats %}
-                                                {% set is_selected = 'selected' if (row.categoria_final == c or (not row.categoria_final and row.categoria_sugerida == c)) else '' %}
-                                                <option value="{{ c }}" {{ is_selected }}>{{ c }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <!-- Selección de Prioridad Final -->
-                                        <select name="prioridad_final" class="form-select form-select-sm rounded-2">
-                                            {% set pris = ['Baja', 'Media', 'Alta', 'Crítica'] %}
-                                            {% for p in pris %}
-                                                {% set is_selected = 'selected' if (row.prioridad_final == p or (not row.prioridad_final and row.prioridad_sugerida == p)) else '' %}
-                                                <option value="{{ p }}" {{ is_selected }}>{{ p }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        {% set estado = row.estado %}
-                                        <span class="badge {% if estado == 'Resuelto' or estado == 'Validado' %}bg-success{% elif estado == 'Atendido' %}bg-info text-dark{% elif estado == 'En Proceso' %}bg-primary{% else %}bg-secondary{% endif %}">
-                                            {{ estado }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <button type="submit" class="btn btn-primary btn-sm px-2 rounded-2 mb-1">Guardar</button>
-                                        <a href="/eliminar-ticket/{{ row.id }}" class="btn btn-danger btn-sm px-2 rounded-2 mb-1" onclick="return confirm('¿Estás seguro de eliminar el ticket {{ row.codigo_ticket }}?');" title="Eliminar Ticket">
-                                        🗑️ Eliminar
-                                         </a>
-                                    </td>
                                 </form>
+
+                                <td><strong>{{ row.codigo_ticket }}</strong><br><small class="text-muted" style="font-size: 0.75rem;">{{ row.fecha_registro }}</small></td>
+                                <td class="text-secondary" style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ row.descripcion_texto }}">{{ row.descripcion_texto }}</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">Cat: {{ row.categoria_sugerida }}</span>
+                                    <span class="badge bg-warning text-dark">Prio: {{ row.prioridad_sugerida }}</span>
+                                    <br><small class="text-muted" style="font-size: 0.75rem;">Tiempo: {{ row.tiempo_procesamiento_ia }}s</small>
+                                </td>
+                                <td>
+                                    <!-- Selección de Categoría Final -->
+                                    <select name="categoria_final" form="formValidar{{ row.id }}" class="form-select form-select-sm mb-1 rounded-2">
+                                        {% set cats = ['Hardware', 'Software', 'Redes', 'Accesos', 'Impresoras'] %}
+                                        {% for c in cats %}
+                                            {% set is_selected = 'selected' if (row.categoria_final == c or (not row.categoria_final and row.categoria_sugerida == c)) else '' %}
+                                            <option value="{{ c }}" {{ is_selected }}>{{ c }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <!-- Selección de Prioridad Final -->
+                                    <select name="prioridad_final" form="formValidar{{ row.id }}" class="form-select form-select-sm rounded-2">
+                                        {% set pris = ['Baja', 'Media', 'Alta', 'Crítica'] %}
+                                        {% for p in pris %}
+                                            {% set is_selected = 'selected' if (row.prioridad_final == p or (not row.prioridad_final and row.prioridad_sugerida == p)) else '' %}
+                                            <option value="{{ p }}" {{ is_selected }}>{{ p }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    {% set estado = row.estado %}
+                                    <span class="badge {% if estado == 'Resuelto' or estado == 'Validado' %}bg-success{% elif estado == 'Atendido' %}bg-info text-dark{% elif estado == 'En Proceso' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                        {{ estado }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if row.solucion_texto %}
+                                        <button type="button" class="btn btn-sm btn-outline-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSolucion{{ row.id }}" title="Ver / Editar Solución">
+                                            📝 Ver Solución
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSolucion{{ row.id }}" title="Agregar Solución">
+                                            ➕ Agregar
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="submit" form="formValidar{{ row.id }}" class="btn btn-primary btn-sm px-2 rounded-2 mb-1">Guardar</button>
+                                    <a href="/eliminar-ticket/{{ row.id }}" class="btn btn-danger btn-sm px-2 rounded-2 mb-1" onclick="return confirm('¿Estás seguro de eliminar el ticket {{ row.codigo_ticket }}?');" title="Eliminar Ticket">
+                                    🗑️ Eliminar
+                                    </a>
+                                </td>
                             </tr>
+
+                            <!-- Modal de Solución para este ticket -->
+                            <div class="modal fade" id="modalSolucion{{ row.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/guardar-solucion">
+                                            <div class="modal-header bg-dark text-white">
+                                                <h5 class="modal-title">Solución del Ticket: {{ row.codigo_ticket }}</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <input type="hidden" name="id_ticket" value="{{ row.id }}">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold text-secondary">Diagnóstico / Acciones realizadas:</label>
+                                                    <textarea class="form-control rounded-3" name="solucion_texto" rows="5" placeholder="Escribe aquí los pasos realizados para solucionar la incidencia...">{{ row.solucion_texto or '' }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary btn-sm">Guardar Solución</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No hay incidencias registradas en el historial.</td>
+                                <td colspan="7" class="text-center text-muted py-4">No hay incidencias registradas en el historial.</td>
                             </tr>
                         {% endif %}
                     </tbody>

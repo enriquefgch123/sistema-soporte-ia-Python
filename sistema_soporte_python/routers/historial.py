@@ -138,3 +138,25 @@ def eliminar_ticket(request: Request, ticket_id: int):
         mensaje = f"<div class='alert alert-danger'>Error al eliminar la incidencia: {e}</div>"
         
     return historial_get(request, mensaje=mensaje)
+
+@router.post("/guardar-solucion", response_class=HTMLResponse)
+def guardar_solucion(
+    request: Request, 
+    id_ticket: int = Form(...), 
+    solucion_texto: str = Form(...)
+):
+    if not request.session.get("usuario_id") or request.session.get("rol") not in ["Administrador", "Analista"]:
+        return RedirectResponse(url="/login", status_code=303)
+        
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("UPDATE incidencias SET solucion_texto = %s WHERE id = %s", (solucion_texto, id_ticket))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        mensaje = "<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Detalle de solución guardado con éxito!<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"
+    except Exception as e:
+        mensaje = f"<div class='alert alert-danger'>Error al guardar la solución: {e}</div>"
+        
+    return historial_get(request, mensaje=mensaje)

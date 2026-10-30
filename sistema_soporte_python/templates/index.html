@@ -66,6 +66,7 @@
                                     <th class="py-3">Categoría</th>
                                     <th class="py-3">Prioridad</th>
                                     <th class="py-3">Estado Actual</th>
+                                    <th class="py-3">Solución del Soporte</th>
                                     <th class="py-3 rounded-end text-center">Acción</th>
                                 </tr>
                             </thead>
@@ -90,6 +91,15 @@
                                                 {{ estado }}
                                             </span>
                                         </td>
+                                        <td>
+                                            {% if t.solucion_texto %}
+                                                <button type="button" class="btn btn-sm btn-info text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#modalVerSolucion{{ t.id }}">
+                                                    🔍 Ver Detalle
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted small">En proceso...</span>
+                                            {% endif %}
+                                        </td>
                                         <td class="text-center">
                                             {% if t.estado == 'Atendido' %}
                                                 <form method="POST" action="/resolver-ticket/{{ t.id }}" class="d-inline">
@@ -102,10 +112,33 @@
                                             {% endif %}
                                         </td>
                                     </tr>
+
+                                    <!-- Modal de Solución para el Usuario -->
+                                    {% if t.solucion_texto %}
+                                    <div class="modal fade" id="modalVerSolucion{{ t.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-success text-white">
+                                                    <h5 class="modal-title">Solución Aplicada - {{ t.codigo_ticket }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body text-start">
+                                                    <p class="text-muted small mb-2"><strong>Tu reporte inicial:</strong> {{ t.descripcion_texto }}</p>
+                                                    <hr>
+                                                    <label class="form-label fw-semibold text-dark">Respuesta del Soporte Técnico:</label>
+                                                    <div class="p-3 bg-light rounded border text-secondary" style="white-space: pre-line;">{{ t.solucion_texto }}</div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No has registrado ningún ticket todavía.</td>
+                                        <td colspan="7" class="text-center text-muted py-4">No has registrado ningún ticket todavía.</td>
                                     </tr>
                                 {% endif %}
                             </tbody>
